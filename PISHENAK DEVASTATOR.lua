@@ -1,42 +1,46 @@
 --[[
-    PISHENAK DEVASTATOR v20.1 // FULL PREMIUM BUILD
-    FIXED: ID INJECTION, ANTI-KICK, FULL UI
+    PISHENAK DEVASTATOR v22 // FINAL PRIVATE BUILD
+    ФУНКЦИИ: 
+    - GLOBAL SKY (BYPASS ATTEMPT)
+    - REMOTE SCANNER (ПОИСК УЯЗВИМОСТЕЙ)
+    - ANTI-KICK (METATABLE HOOK)
+    - AUDIO CRASH & VOID MAP
 ]]
 
 local Players = game:GetService("Players")
 local lp = Players.LocalPlayer
 
 --------------------------------------------------
--- СИСТЕМА ЗАЩИТЫ (WHITELIST)
+-- [1] СИСТЕМА ЗАЩИТЫ (WHITELIST)
 --------------------------------------------------
 local whitelist = {
-    [lp.UserId] = "Developer", -- Твой ID подхватится автоматически
-    [123456789] = "Customer_1", -- Сюда добавляй покупателей
+    [lp.UserId] = "Developer", -- Твой ID (подхватится автоматически)
+    -- [123456789] = "Customer_Name", -- Сюда добавляй ID покупателей
 }
 
 if not whitelist[lp.UserId] then
-    lp:Kick("\n[DEVASTATOR ERROR]\nLicense Not Found.\nYour ID: " .. lp.UserId)
+    lp:Kick("\n[DEVASTATOR ERROR]\nLicense Required.\nYour ID: " .. lp.UserId)
     return
 end
 
 --------------------------------------------------
--- ИНИЦИАЛИЗАЦИЯ
+-- [2] ГРАФИЧЕСКИЙ ИНТЕРФЕЙС (GUI)
 --------------------------------------------------
 local coreGui = game:GetService("CoreGui")
 local lighting = game:GetService("Lighting")
 local uis = game:GetService("UserInputService")
 
+-- Удаление старой версии
 for _, v in pairs(coreGui:GetChildren()) do
-    if v.Name == "DevastatorV20" then v:Destroy() end
+    if v.Name == "DevastatorV22" then v:Destroy() end
 end
 
 local sg = Instance.new("ScreenGui", coreGui)
-sg.Name = "DevastatorV20"
+sg.Name = "DevastatorV22"
 
--- ГЛАВНОЕ ОКНО
 local main = Instance.new("Frame", sg)
-main.Size = UDim2.new(0, 550, 0, 420)
-main.Position = UDim2.new(0.5, -275, 0.5, -210)
+main.Size = UDim2.new(0, 550, 0, 450)
+main.Position = UDim2.new(0.5, -275, 0.5, -225)
 main.BackgroundColor3 = Color3.fromRGB(10, 0, 0)
 main.Active = true
 main.Draggable = true
@@ -45,31 +49,31 @@ local stroke = Instance.new("UIStroke", main)
 stroke.Color = Color3.fromRGB(255, 0, 0)
 stroke.Thickness = 2
 
--- ЗАГОЛОВОК
+-- Заголовок
 local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1, 0, 0, 45)
-title.Text = "DEVASTATOR v20.1 // USER: " .. whitelist[lp.UserId]
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Text = "DEVASTATOR v22 // LICENSED TO: " .. whitelist[lp.UserId]
 title.TextColor3 = Color3.fromRGB(255, 0, 0)
 title.Font = Enum.Font.Code
-title.BackgroundColor3 = Color3.fromRGB(30, 0, 0)
+title.BackgroundColor3 = Color3.fromRGB(25, 0, 0)
 Instance.new("UICorner", title)
 
--- ПОЛЕ ВВОДА ID
+-- Поле ввода ID
 local idInput = Instance.new("TextBox", main)
-idInput.Size = UDim2.new(0, 220, 0, 35)
-idInput.Position = UDim2.new(0.5, -110, 0, 60)
-idInput.PlaceholderText = "ВСТАВЬ ID НЕБА..."
+idInput.Size = UDim2.new(0, 240, 0, 35)
+idInput.Position = UDim2.new(0.5, -120, 0, 55)
+idInput.PlaceholderText = "ENTER IMAGE ID..."
 idInput.Text = ""
 idInput.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-idInput.TextColor3 = Color3.new(1,1,1)
+idInput.TextColor3 = Color3.new(1, 1, 1)
 idInput.Font = Enum.Font.Code
 Instance.new("UICorner", idInput)
 
--- КОНСОЛЬ (LOGS)
+-- Консоль
 local logBox = Instance.new("ScrollingFrame", main)
-logBox.Size = UDim2.new(1, -20, 0, 150)
-logBox.Position = UDim2.new(0, 10, 1, -160)
-logBox.BackgroundColor3 = Color3.fromRGB(15, 0, 0)
+logBox.Size = UDim2.new(1, -20, 0, 160)
+logBox.Position = UDim2.new(0, 10, 1, -170)
+logBox.BackgroundColor3 = Color3.fromRGB(5, 0, 0)
 logBox.BorderSizePixel = 0
 local logLay = Instance.new("UIListLayout", logBox)
 
@@ -81,15 +85,15 @@ local function log(txt, col)
     l.Font = Enum.Font.Code
     l.BackgroundTransparency = 1
     l.TextXAlignment = Enum.TextXAlignment.Left
-    logBox.CanvasSize = UDim2.new(0,0,0, logLay.AbsoluteContentSize.Y)
+    logBox.CanvasSize = UDim2.new(0, 0, 0, logLay.AbsoluteContentSize.Y)
     logBox.CanvasPosition = Vector2.new(0, logLay.AbsoluteContentSize.Y)
 end
 
 --------------------------------------------------
--- ЛОГИКА (ФУНКЦИИ)
+-- [3] ФУНКЦИОНАЛ
 --------------------------------------------------
 
--- ANTI-KICK
+-- 1. Anti-Kick (Обход блокировки клиентом)
 local function enableAntiKick()
     local mt = getrawmetatable(game)
     setreadonly(mt, false)
@@ -97,102 +101,103 @@ local function enableAntiKick()
     mt.__namecall = newcclosure(function(self, ...)
         local method = getnamecallmethod()
         if tostring(method) == "Kick" or tostring(method) == "kick" then
-            log("ANTI-KICK: БЛОКИРОВКА КИКА", Color3.new(1, 1, 0))
+            log("ANTI-KICK: BLOCKED ATTEMPT", Color3.new(1, 1, 0))
             return nil
         end
         return old(self, ...)
     end)
     setreadonly(mt, true)
-    log("ANTI-KICK СИСТЕМА АКТИВНА", Color3.new(0, 1, 0))
+    log("ANTI-KICK: ACTIVATED", Color3.new(0, 1, 0))
 end
 
--- SECURE INJECTION (НЕБО)
-local function secureInject(id)
-    if id == "" or not tonumber(id) then 
-        log("ОШИБКА: НЕВЕРНЫЙ ID", Color3.new(1,0,0))
-        return 
+-- 2. Remote Scanner (Поиск дыр в сервере)
+local function scanRemotes()
+    log("SCANNING FOR SERVER HOLES...", Color3.new(1, 1, 1))
+    local count = 0
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("RemoteEvent") then
+            count = count + 1
+            log("FOUND: " .. v.Name, Color3.new(0, 1, 1))
+        end
     end
-    
+    log("TOTAL REMOTES: " .. count, Color3.new(1, 1, 0))
+end
+
+-- 3. Global Sky Injection (Попытка смены неба для всех)
+local function globalSky(id)
+    if id == "" or not tonumber(id) then log("ERROR: INVALID ID", Color3.new(1,0,0)) return end
     local asset = "rbxassetid://" .. id
-    log("ЗАПУСК ИНЪЕКЦИИ: " .. id, Color3.new(1,1,1))
+    log("STARTING INJECTION: " .. id, Color3.new(1,1,1))
     
-    -- Локально
+    -- Локальная смена
     local s = lighting:FindFirstChild("DevastatorSky") or Instance.new("Sky", lighting)
     s.Name = "DevastatorSky"
     s.SkyboxBk = asset s.SkyboxDn = asset s.SkyboxFt = asset
     s.SkyboxLf = asset s.SkyboxRt = asset s.SkyboxUp = asset
 
-    -- Поиск Remotes
+    -- Попытка пробиться на сервер
     local targets = {}
     for _, v in pairs(game:GetDescendants()) do
-        pcall(function()
-            if v:IsA("RemoteEvent") then
-                local n = v.Name:lower()
-                if n:find("sky") or n:find("light") or n:find("weather") or n:find("admin") then
-                    table.insert(targets, v)
-                end
+        if v:IsA("RemoteEvent") then
+            local n = v.Name:lower()
+            if n:find("sky") or n:find("light") or n:find("weather") or n:find("env") or n:find("admin") then
+                table.insert(targets, v)
             end
-        end)
+        end
     end
-
-    log("НАЙДЕНО СОБЫТИЙ: " .. #targets, Color3.new(1, 0.5, 0))
 
     task.spawn(function()
         for i, remote in pairs(targets) do
             pcall(function()
                 remote:FireServer("Skybox", asset)
                 remote:FireServer(asset)
-                remote:FireServer("Update", {["Skybox"] = asset})
+                remote:FireServer("UpdateSky", asset)
             end)
-            if i % 2 == 0 then task.wait(0.4) end -- Задержка от кика
+            if i % 2 == 0 then task.wait(0.5) end -- Задержка для обхода анти-спама
         end
-        log("ИНЪЕКЦИЯ ЗАВЕРШЕНА", Color3.new(0, 1, 0))
+        log("INJECTION COMPLETE. CHECK OTHER DEVICES.", Color3.new(0, 1, 0))
     end)
 end
 
 --------------------------------------------------
--- КНОПКИ УПРАВЛЕНИЯ
+-- [4] КНОПКИ
 --------------------------------------------------
-local bFrame = Instance.new("Frame", main)
-bFrame.Size = UDim2.new(1, -20, 0, 100)
-bFrame.Position = UDim2.new(0, 10, 0, 105)
-bFrame.BackgroundTransparency = 1
-local grid = Instance.new("UIGridLayout", bFrame)
+local btnFrame = Instance.new("Frame", main)
+btnFrame.Size = UDim2.new(1, -20, 0, 120)
+btnFrame.Position = UDim2.new(0, 10, 0, 100)
+btnFrame.BackgroundTransparency = 1
+local grid = Instance.new("UIGridLayout", btnFrame)
 grid.CellSize = UDim2.new(0, 170, 0, 35)
 
-local function addBtn(txt, callback)
-    local b = Instance.new("TextButton", bFrame)
+local function addBtn(txt, cb)
+    local b = Instance.new("TextButton", btnFrame)
     b.Text = txt
     b.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
-    b.TextColor3 = Color3.new(1,1,1)
+    b.TextColor3 = Color3.new(1, 1, 1)
     b.Font = Enum.Font.Code
     Instance.new("UICorner", b)
-    b.MouseButton1Click:Connect(callback)
+    b.MouseButton1Click:Connect(cb)
 end
 
 addBtn("ACTIVATE ANTI-KICK", enableAntiKick)
-
-addBtn("EXECUTE GLOBAL SKY", function()
-    secureInject(idInput.Text)
-end)
-
-addBtn("CRASH ALL AUDIO", function()
-    log("СПАМ ЗВУКОМ...", Color3.new(1,0,0))
+addBtn("SCAN REMOTES", scanRemotes)
+addBtn("EXECUTE GLOBAL SKY", function() globalSky(idInput.Text) end)
+addBtn("CRASH AUDIO", function()
+    log("AUDIO CHAOS STARTED", Color3.new(1,0,0))
     for _, v in pairs(game:GetDescendants()) do
         if v:IsA("Sound") then v:Play() v.Volume = 10 end
     end
 end)
-
 addBtn("VOID WORKSPACE", function()
-    log("УДАЛЕНИЕ КАРТЫ...", Color3.new(1,1,1))
+    log("MAP PURGE INITIATED", Color3.new(1,1,1))
     for _, v in pairs(workspace:GetChildren()) do
         if not v:FindFirstChild("Humanoid") and v.Name ~= "Terrain" then v:Destroy() end
     end
 end)
 
--- СКРЫТИЕ (L)
+-- Скрытие меню (L)
 uis.InputBegan:Connect(function(k, g)
     if not g and k.KeyCode == Enum.KeyCode.L then main.Visible = not main.Visible end
 end)
 
-log("DEVASTATOR v20.1 READY.", Color3.new(0, 1, 0))
+log("DEVASTATOR v22 LOADED. PRESS 'L' TO HIDE.")
