@@ -1,21 +1,21 @@
 --[[
-    PISHENAK DEVASTATOR v22 // FINAL PRIVATE BUILD
-    ФУНКЦИИ: 
-    - GLOBAL SKY (BYPASS ATTEMPT)
-    - REMOTE SCANNER (ПОИСК УЯЗВИМОСТЕЙ)
-    - ANTI-KICK (METATABLE HOOK)
-    - AUDIO CRASH & VOID MAP
+    PISHENAK DEVASTATOR v23 // PROJECT: OVERLORD
+    STATUS: PREMIUM (FIXED FE-BYPASS ATTEMPTS)
+    
+    ИНСТРУКЦИЯ:
+    1. Нажми 'L' чтобы скрыть/показать меню.
+    2. Используй 'REMOTE SPY' для поиска скрытых событий сервера.
+    3. 'EXECUTE GLOBAL SKY' пробует пробить FilteringEnabled (FE).
 ]]
 
 local Players = game:GetService("Players")
 local lp = Players.LocalPlayer
 
 --------------------------------------------------
--- [1] СИСТЕМА ЗАЩИТЫ (WHITELIST)
+-- [1] WHITELIST (UserId)
 --------------------------------------------------
 local whitelist = {
-    [lp.UserId] = "Developer", -- Твой ID (подхватится автоматически)
-    -- [123456789] = "Customer_Name", -- Сюда добавляй ID покупателей
+    [lp.UserId] = "Developer", -- Твой ID подхватывается автоматически
 }
 
 if not whitelist[lp.UserId] then
@@ -24,23 +24,22 @@ if not whitelist[lp.UserId] then
 end
 
 --------------------------------------------------
--- [2] ГРАФИЧЕСКИЙ ИНТЕРФЕЙС (GUI)
+-- [2] ИНИЦИАЛИЗАЦИЯ ИНТЕРФЕЙСА
 --------------------------------------------------
 local coreGui = game:GetService("CoreGui")
 local lighting = game:GetService("Lighting")
 local uis = game:GetService("UserInputService")
 
--- Удаление старой версии
 for _, v in pairs(coreGui:GetChildren()) do
-    if v.Name == "DevastatorV22" then v:Destroy() end
+    if v.Name == "DevastatorV23" then v:Destroy() end
 end
 
 local sg = Instance.new("ScreenGui", coreGui)
-sg.Name = "DevastatorV22"
+sg.Name = "DevastatorV23"
 
 local main = Instance.new("Frame", sg)
-main.Size = UDim2.new(0, 550, 0, 450)
-main.Position = UDim2.new(0.5, -275, 0.5, -225)
+main.Size = UDim2.new(0, 550, 0, 480)
+main.Position = UDim2.new(0.5, -275, 0.5, -240)
 main.BackgroundColor3 = Color3.fromRGB(10, 0, 0)
 main.Active = true
 main.Draggable = true
@@ -52,27 +51,27 @@ stroke.Thickness = 2
 -- Заголовок
 local title = Instance.new("TextLabel", main)
 title.Size = UDim2.new(1, 0, 0, 40)
-title.Text = "DEVASTATOR v22 // LICENSED TO: " .. whitelist[lp.UserId]
+title.Text = "DEVASTATOR v23 // LICENSED: " .. whitelist[lp.UserId]
 title.TextColor3 = Color3.fromRGB(255, 0, 0)
 title.Font = Enum.Font.Code
 title.BackgroundColor3 = Color3.fromRGB(25, 0, 0)
 Instance.new("UICorner", title)
 
--- Поле ввода ID
+-- Ввод ID
 local idInput = Instance.new("TextBox", main)
-idInput.Size = UDim2.new(0, 240, 0, 35)
-idInput.Position = UDim2.new(0.5, -120, 0, 55)
-idInput.PlaceholderText = "ENTER IMAGE ID..."
+idInput.Size = UDim2.new(0, 260, 0, 35)
+idInput.Position = UDim2.new(0.5, -130, 0, 55)
+idInput.PlaceholderText = "ENTER SKY IMAGE ID..."
 idInput.Text = ""
 idInput.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 idInput.TextColor3 = Color3.new(1, 1, 1)
 idInput.Font = Enum.Font.Code
 Instance.new("UICorner", idInput)
 
--- Консоль
+-- Консоль логов
 local logBox = Instance.new("ScrollingFrame", main)
-logBox.Size = UDim2.new(1, -20, 0, 160)
-logBox.Position = UDim2.new(0, 10, 1, -170)
+logBox.Size = UDim2.new(1, -20, 0, 180)
+logBox.Position = UDim2.new(0, 10, 1, -190)
 logBox.BackgroundColor3 = Color3.fromRGB(5, 0, 0)
 logBox.BorderSizePixel = 0
 local logLay = Instance.new("UIListLayout", logBox)
@@ -90,10 +89,32 @@ local function log(txt, col)
 end
 
 --------------------------------------------------
--- [3] ФУНКЦИОНАЛ
+-- [3] ГЛАВНЫЕ ФУНКЦИИ
 --------------------------------------------------
 
--- 1. Anti-Kick (Обход блокировки клиентом)
+-- 1. REMOTE SPY (ОТСЛЕЖИВАНИЕ СОБЫТИЙ СЕРВЕРА)
+local spyActive = false
+local function toggleSpy()
+    spyActive = not spyActive
+    log("REMOTE SPY: " .. (spyActive and "ON" or "OFF"), Color3.new(1, 1, 0))
+    
+    if spyActive then
+        local mt = getrawmetatable(game)
+        local old = mt.__namecall
+        setreadonly(mt, false)
+        
+        mt.__namecall = newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+            if spyActive and self:IsA("RemoteEvent") and method == "FireServer" then
+                log("SPY: " .. self.Name .. " fired!", Color3.new(0, 1, 1))
+            end
+            return old(self, ...)
+        end)
+        setreadonly(mt, true)
+    end
+end
+
+-- 2. ANTI-KICK
 local function enableAntiKick()
     local mt = getrawmetatable(game)
     setreadonly(mt, false)
@@ -101,69 +122,53 @@ local function enableAntiKick()
     mt.__namecall = newcclosure(function(self, ...)
         local method = getnamecallmethod()
         if tostring(method) == "Kick" or tostring(method) == "kick" then
-            log("ANTI-KICK: BLOCKED ATTEMPT", Color3.new(1, 1, 0))
+            log("ANTI-KICK: BLOCKED SERVER KICK", Color3.new(1, 1, 0))
             return nil
         end
         return old(self, ...)
     end)
     setreadonly(mt, true)
-    log("ANTI-KICK: ACTIVATED", Color3.new(0, 1, 0))
+    log("ANTI-KICK SYSTEM ACTIVE", Color3.new(0, 1, 0))
 end
 
--- 2. Remote Scanner (Поиск дыр в сервере)
-local function scanRemotes()
-    log("SCANNING FOR SERVER HOLES...", Color3.new(1, 1, 1))
-    local count = 0
-    for _, v in pairs(game:GetDescendants()) do
-        if v:IsA("RemoteEvent") then
-            count = count + 1
-            log("FOUND: " .. v.Name, Color3.new(0, 1, 1))
-        end
-    end
-    log("TOTAL REMOTES: " .. count, Color3.new(1, 1, 0))
-end
-
--- 3. Global Sky Injection (Попытка смены неба для всех)
+-- 3. GLOBAL SKY INJECTION (v23 IMPROVED)
 local function globalSky(id)
-    if id == "" or not tonumber(id) then log("ERROR: INVALID ID", Color3.new(1,0,0)) return end
+    if id == "" or not tonumber(id) then log("ERROR: WRONG ID", Color3.new(1,0,0)) return end
     local asset = "rbxassetid://" .. id
-    log("STARTING INJECTION: " .. id, Color3.new(1,1,1))
+    log("ATTEMPTING FE-BYPASS INJECTION...", Color3.new(1,1,1))
     
-    -- Локальная смена
+    -- Локально (всегда работает)
     local s = lighting:FindFirstChild("DevastatorSky") or Instance.new("Sky", lighting)
     s.Name = "DevastatorSky"
     s.SkyboxBk = asset s.SkyboxDn = asset s.SkyboxFt = asset
     s.SkyboxLf = asset s.SkyboxRt = asset s.SkyboxUp = asset
 
-    -- Попытка пробиться на сервер
-    local targets = {}
+    -- Попытка пробиться на сервер через перебор
+    local found = 0
     for _, v in pairs(game:GetDescendants()) do
         if v:IsA("RemoteEvent") then
             local n = v.Name:lower()
             if n:find("sky") or n:find("light") or n:find("weather") or n:find("env") or n:find("admin") then
-                table.insert(targets, v)
+                found = found + 1
+                task.spawn(function()
+                    pcall(function()
+                        v:FireServer("Skybox", asset)
+                        v:FireServer(asset)
+                        v:FireServer("Update", asset)
+                    end)
+                end)
             end
         end
     end
-
-    task.spawn(function()
-        for i, remote in pairs(targets) do
-            pcall(function()
-                remote:FireServer("Skybox", asset)
-                remote:FireServer(asset)
-                remote:FireServer("UpdateSky", asset)
-            end)
-            if i % 2 == 0 then task.wait(0.5) end -- Задержка для обхода анти-спама
-        end
-        log("INJECTION COMPLETE. CHECK OTHER DEVICES.", Color3.new(0, 1, 0))
-    end)
+    log("INJECTED INTO " .. found .. " REMOTES", Color3.new(1, 0.5, 0))
+    log("CHECK SECOND DEVICE NOW", Color3.new(1, 1, 1))
 end
 
 --------------------------------------------------
--- [4] КНОПКИ
+-- [4] КНОПКИ МЕНЮ
 --------------------------------------------------
 local btnFrame = Instance.new("Frame", main)
-btnFrame.Size = UDim2.new(1, -20, 0, 120)
+btnFrame.Size = UDim2.new(1, -20, 0, 150)
 btnFrame.Position = UDim2.new(0, 10, 0, 100)
 btnFrame.BackgroundTransparency = 1
 local grid = Instance.new("UIGridLayout", btnFrame)
@@ -180,24 +185,32 @@ local function addBtn(txt, cb)
 end
 
 addBtn("ACTIVATE ANTI-KICK", enableAntiKick)
-addBtn("SCAN REMOTES", scanRemotes)
+addBtn("REMOTE SPY", toggleSpy)
 addBtn("EXECUTE GLOBAL SKY", function() globalSky(idInput.Text) end)
+addBtn("SCAN ALL REMOTES", function()
+    local c = 0
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("RemoteEvent") then c = c + 1 log("FOUND: " .. v.Name, Color3.new(0, 1, 1)) end
+    end
+    log("TOTAL: " .. c, Color3.new(1, 1, 0))
+end)
 addBtn("CRASH AUDIO", function()
-    log("AUDIO CHAOS STARTED", Color3.new(1,0,0))
     for _, v in pairs(game:GetDescendants()) do
         if v:IsA("Sound") then v:Play() v.Volume = 10 end
     end
+    log("AUDIO SPAM ACTIVE", Color3.new(1, 0, 0))
 end)
-addBtn("VOID WORKSPACE", function()
-    log("MAP PURGE INITIATED", Color3.new(1,1,1))
+addBtn("VOID WORLD", function()
     for _, v in pairs(workspace:GetChildren()) do
         if not v:FindFirstChild("Humanoid") and v.Name ~= "Terrain" then v:Destroy() end
     end
+    log("WORLD PURGED", Color3.new(1, 1, 1))
 end)
 
--- Скрытие меню (L)
+-- Скрытие на L
 uis.InputBegan:Connect(function(k, g)
     if not g and k.KeyCode == Enum.KeyCode.L then main.Visible = not main.Visible end
 end)
 
-log("DEVASTATOR v22 LOADED. PRESS 'L' TO HIDE.")
+log("PISHENAK DEVASTATOR v23 LOADED", Color3.new(0, 1, 0))
+log("PRESS 'L' TO TOGGLE MENU", Color3.new(1, 1, 1))
